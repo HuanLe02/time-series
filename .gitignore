@@ -1,3 +1,5 @@
 *.csv
 *.docx
 *.pdf
+.ipynb_checkpoints
+
