@@ -1,7 +1,7 @@
 import numpy as np
 
 # generate markov from observed states
-def markov_from_states(observed_states, order=1):   
+def markov_from_states(observed_states, states_dict, order=1):   
     """
     Input:
         observed_states: list of discretized states
@@ -11,21 +11,25 @@ def markov_from_states(observed_states, order=1):
         freq: frequency matrix
     """
     # count the transitions
-    data_int = observed_states - np.min(observed_states)
-    n_states = np.max(observed_states) - np.min(observed_states) + 1
-    pre = data_int[:-order]
-    post = data_int[order:]
+    # data_int = observed_states - np.min(observed_states)
+    n_states = len(states_dict.keys())
+    pre = observed_states[:-order]
+    post = observed_states[order:]
     markov = np.zeros((n_states, n_states))
     for a,b in zip(pre,post):
         markov[a, b] += 1.
     
     # save a frequency matrix copy
-    frequencies = np.copy(markov).astype('int64')
+    # frequencies = np.copy(markov).astype('int64')
+    
+    # account for all-zero rows
+    for i in np.where(np.sum(markov, 1) == 0.)[0]:
+        markov[i][i] = 1.
     
     # normalize to keep sum of rows = 1
     markov = markov / np.sum(markov, axis=1, keepdims=True)    
     
-    return markov, frequencies
+    return markov #, frequencies
 
 def random_walk_weighted(n_steps, markov, observed_states):        # random walk but weighted
     log_prob = 0.
