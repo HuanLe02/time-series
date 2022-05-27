@@ -28,25 +28,25 @@ def discretize_thresholds(dataseries, boundaries):
     
     return discretized.astype("int64"), states_dict
 
-def markov_from_data(dataseries, thresholds, noise_mean=0.0, noise_variance=0.0, seed=None, order=1):
+def markov_from_data(dataseries, thresholds, noise_mean=0.0, noise_sd=0.0, seed=None, order=1):
     """
     Input:
         dataseries: time series. NumPy Array of dimensions (n, )
-        noise_mean, noise_variance: mean and variance of normal distribution of noise
+        noise_mean, noise_sd: mean and SD of normal distribution of noise
         thresholds: values that separate categories
     Output:
         markov: right Markov matrix
         freq: frequency matrix
     """
-    # account for N(noise_mean, noise_variance) noise
+    # account for N(noise_mean, noise_sd) noise
     rng = np.random.default_rng(seed)
-    noise = rng.normal(loc=noise_mean, scale=noise_variance, size=len(dataseries))
+    noise = rng.normal(loc=noise_mean, scale=noise_sd, size=len(dataseries))
     # discretize datalist
-    states_sequence, states_dict = discretize_thresholds(dataseries + noise, thresholds)
+    states_sequence, states_dict = discretize_thresholds(dataseries - noise, thresholds)
     markov = markov_from_states(states_sequence, states_dict, order)
     return markov
 
-def avg_markov_from_data(num_passes, dataseries, thresholds, noise_mean=0.0, noise_variance=0.0, seed=None, order=1):
+def avg_markov_from_data(num_passes, dataseries, thresholds, noise_mean=0.0, noise_sd=0.0, seed=None, order=1):
     assert num_passes >= 1
     
     # get observed states
@@ -56,14 +56,14 @@ def avg_markov_from_data(num_passes, dataseries, thresholds, noise_mean=0.0, noi
     bounds_list = np.array(list(states_dict.values()))
     
     # first pass
-    sum_markov = markov_from_data(dataseries, thresholds, noise_mean, noise_variance, seed, order)
+    sum_markov = markov_from_data(dataseries, thresholds, noise_mean, noise_sd, seed, order)
     # early return
-    if (num_passes == 1) or (noise_variance == 0.0):
+    if (num_passes == 1) or (noise_sd == 0.0):
         return sum_markov, observed_states, states_dict, bounds_list
     
     # loop to calculate average markov matrix
     for i in range(num_passes-1):
-        new_markov = markov_from_data(dataseries, thresholds, noise_mean, noise_variance, seed, order)
+        new_markov = markov_from_data(dataseries, thresholds, noise_mean, noise_sd, seed, order)
         sum_markov += new_markov
         
     return sum_markov / num_passes, observed_states, states_dict, bounds_list
